@@ -104,4 +104,81 @@ To find the table information....
    order by 2,3
    
    
+-- Using CTE to perform Calculation on Partition By in previous query
+
+    >>>With PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated)
+       as
+       (
+       SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+       , SUM(convert(int, vac.new_vaccinations)) OVER (Partition by dea.location order by dea.location, dea.date) as RollingPeopleVacinated
+       --, (RollingPeopleVacinated/population)*100
+       FROM CovidAnalysis..CovidDeaths dea
+       JOIN CovidAnalysis..CovidVacciantion as vac
+           on dea.location = vac.location
+           and dea.date = vac.date
+       where dea.continent is not null
+        --order by 2,3
+       )
+       SELECT * 
+       FROM PopvsVac
+
+---We got things that wanted for further calculation and let's calculate the Percentage of RollingPeopleVaccinates by Populations
+
+    With PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated)
+    as
+    (
+    Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+    , SUM(CONVERT(int,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
+    --, (RollingPeopleVaccinated/population)*100
+    From CovidAnalysis..CovidDeaths dea
+    Join CovidAnalysis..CovidVacciantion vac
+	     On dea.location = vac.location
+	     and dea.date = vac.date
+    where dea.continent is not null 
+    --order by 2,3
+    )
+    Select *, (RollingPeopleVaccinated/Population)*100 as PercentageOfRollingPeopleVaccinated
+    From PopvsVac
    
+ ---LET'S CREATE A TEMP TABLE...
+
+       DROP Table if exists #PercentageOfPopulationVaccinated
+       CREATE Table #PercentageOfPopulationVaccinated
+
+       (
+       Continent nvarchar (255),
+       Location nvarchar (255),
+       Date datetime,
+       Population numeric,
+       New_Vaccications numeric,
+       RollingPeopleVaccinated numeric
+
+       )
+       Insert Into #PercentageOfPopulationVaccinated
+       Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+       , SUM(CONVERT(int,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
+       --, (RollingPeopleVaccinated/population)*100
+       From CovidAnalysis..CovidDeaths dea
+       Join CovidAnalysis..CovidVacciantion vac
+	        On dea.location = vac.location
+	        and dea.date = vac.date
+       --where dea.continent is not null 
+       --order by 2,3
+
+       Select *, (RollingPeopleVaccinated/Population)*100 as PercentageOfRollingPeopleVaccinated
+       From #PercentageOfPopulationVaccinated
+   
+   -- Creating View to store data for later visualizations
+
+          Create View FinalPercentPopulationVaccinated as
+          Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+         , SUM(CONVERT(int,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
+         --, (RollingPeopleVaccinated/population)*100
+         From CovidAnalysis..CovidDeaths dea
+         Join CovidAnalysis..CovidVacciantion vac
+	          On dea.location = vac.location
+	         and dea.date = vac.date
+         where dea.continent is not null 
+--To view the created table for further anysis in any BI Plateform
+        SELECT *
+        FROM FinalPercentPopulationVaccinated
