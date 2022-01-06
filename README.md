@@ -1,4 +1,4 @@
-# Covid-Analysis-using-PostgreSQL Server
+# Covid-Analysis-using-SQL Server Management Studio
 
 We have imported Covid deaths and Vaccination excel files to analysis....
 
